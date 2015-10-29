@@ -7,7 +7,7 @@
 #include <sys/wait.h>
 
 int G_ISOR = 0;
-//int G_ISAND = 0;
+int G_ISAND = 0;
 int G_ISNEXT = 0;
 
 char* parse(char *cmdLine, char **argv);
@@ -24,16 +24,20 @@ char* parse(char *cmdLine, char **argv)
 {
    char *nextLine = cmdLine;
    int ORFLAG = 0;
-//   int ANDFLAG = 0;
+   int ANDFLAG = 0;
 
    while (*cmdLine != '\0') // traverse through cmdLine until NULL char reached
    {
+      // if global G_ISAND set at time of parse
+
       // ensure to skip all spaces, tabs, and newlines
       while ((*cmdLine == '\t') || (*cmdLine == ' ') || (*cmdLine == '\n'))
       {
          // replace this character with NULL
          *cmdLine = '\0';
          cmdLine++;
+         ORFLAG = 0;
+         ANDFLAG = 0;
       }
       // now ensure a word, and not comments, follows, otherwise end argv array
       if ((*cmdLine == '\0') || (*cmdLine == '#'))
@@ -45,6 +49,7 @@ char* parse(char *cmdLine, char **argv)
       // check if the ; connector is at the beginning of a word or alone
       if (*cmdLine == ';')
       {
+         *cmdLine = '\0';
          cmdLine++;
          nextLine = cmdLine;
          *argv = '\0';
@@ -74,6 +79,30 @@ char* parse(char *cmdLine, char **argv)
       } else
       {
          ORFLAG = 0;
+      }
+      if (*cmdLine == '&')
+      {
+         if (ANDFLAG)
+         {
+            // if here, a && connector has been detected, so prep and return
+            // decrement cmdLine pointer and set this char to 0, then 
+            // incrment cmdLine pointer to where nextLine starts, after the 
+            // && connector.
+            cmdLine--;
+            *cmdLine = '\0';
+            cmdLine++;
+            *cmdLine = '\0';
+            cmdLine++;
+            nextLine = cmdLine;
+            *argv = '\0';
+            G_ISAND = 1;
+            return nextLine;
+         } 
+         // else
+         ANDFLAG = 1;
+      } else
+      {
+         ANDFLAG = 0;
       }
       if ((*cmdLine != '|') && (*cmdLine != '&'))
       {
@@ -111,13 +140,11 @@ char* parse(char *cmdLine, char **argv)
          ORFLAG = 1;
          cmdLine++;
       }
-/*
       if (*cmdLine == '&')
       {
          ANDFLAG = 1;
          cmdLine++;
       }
-*/
       // now restart loop to record next word until NULL reached
    }
    // set a NULL character at the end of argv list
@@ -176,7 +203,11 @@ int main(void)
    NEWPROMPT:
       *arglist = startArg;
       printf("$: ");
-      fgets(line, 1024, stdin);
+      if (!fgets(line, 1024, stdin))
+      {
+         printf("fgets failed\n");
+         exit(1);
+      }
 //      if (0 == strcmp(line, "\n"))
  //     {
 //         printf("Enter a commmand!\n");
@@ -190,8 +221,18 @@ int main(void)
       while ((!*arglist) && (*nxtLine != '\0'))
       {
     //     printf("No arglist; looking to next\n");
-//         continue; 
-         nxtLine = parse(nxtLine, arglist);
+//         continue;
+         // do not call parse if G_ISAND set but no call to execCmd was made
+         if (G_ISAND == 0)
+         { 
+            nxtLine = parse(nxtLine, arglist);
+         } else
+         {
+            G_ISNEXT = 0;
+            G_ISOR = 0;
+            G_ISAND = 0;
+            goto NEWPROMPT;
+         }
       }
       if (!*arglist)
       {
@@ -199,7 +240,7 @@ int main(void)
          // if here, no argument is to be executed and no new commands await
         G_ISNEXT = 0;
         G_ISOR = 0;
-//      G_ISAND = 0; 
+        G_ISAND = 0; 
         continue;
 
       }
@@ -210,24 +251,16 @@ int main(void)
           return 0;
       }
       // in ; connector case:
-      while (G_ISNEXT || G_ISOR) // add || G_ISOR || G_ISAND when those work...
+      while (G_ISNEXT || G_ISOR || G_ISAND) // if connector detected...
       {
          // clear the ; connector flag for next parse
       //   printf("In ; connector loop.\n");
          G_ISNEXT = 0;
-         // G_ISOR = 0;
-         // G_ISAND = 0;
-         // ensure arglist is filled before sending to execvp, then put
-         // arglist pointer back to original position.
          
          execRtrn = execCmd(arglist);
          
+         // arglist pointer back to original position.
          *arglist = startArg;   
-//         if (0 == strcmp(nxtLine, "\n"))
-//         {
-//         printf("Enter a commmand!\n");
-//            continue;
-//         }
    
          // take action depending on connector and execCmd return
          if (G_ISOR && (execRtrn == 1))
@@ -236,20 +269,31 @@ int main(void)
             G_ISOR = 0;
             goto NEWPROMPT;
          }
-//         if (G_ISAND && (execRtrn == 0))
-//         {
-//            goto NEWPROMPT;
-//         }
+         if (G_ISAND && (execRtrn == 0))
+         {
+            G_ISAND = 0;
+            goto NEWPROMPT;
+         }
          // now, clear global && and || flags
          G_ISOR = 0;
-//         G_ISAND = 0;
+         G_ISAND = 0;
          // otherwise, take in next command to execute
          nxtLine = parse(nxtLine, arglist);
          while ((!*arglist)  && (*nxtLine != '\0'))
          {
          //   printf("No arglist; looking to next\n");
-//            continue; 
-            nxtLine = parse(nxtLine, arglist);
+         // do not call the parse function if G_ISAND is set with no 
+         // prev call to execCmd
+            if (G_ISAND == 0)
+            {
+               nxtLine = parse(nxtLine, arglist);
+            }  else
+            {
+               G_ISNEXT = 0;
+               G_ISOR = 0;
+               G_ISAND = 0;
+               goto NEWPROMPT;
+            }
          }
          if (!*arglist)
          {
@@ -257,7 +301,7 @@ int main(void)
             // if here, no argument is to be executed and no new commands await
             G_ISNEXT = 0;  
             G_ISOR = 0;
-//            G_ISAND = 0;
+            G_ISAND = 0;
             goto NEWPROMPT;
          } 
 /*         while (!*arglist)
