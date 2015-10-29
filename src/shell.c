@@ -6,12 +6,12 @@
 #include <errno.h>
 #include <sys/wait.h>
 
-//int G_ISOR = 0;
+int G_ISOR = 0;
 //int G_ISAND = 0;
 int G_ISNEXT = 0;
 
 char* parse(char *cmdLine, char **argv);
-void execCmd(char **argVec);
+int execCmd(char **argVec);
 
 // Note on parse: now any char after '#' is considered a comment and ignored
 // by the parse function.
@@ -23,9 +23,8 @@ void execCmd(char **argVec);
 char* parse(char *cmdLine, char **argv)
 {
    char *nextLine = cmdLine;
-//   int ORFLAG = 0;
+   int ORFLAG = 0;
 //   int ANDFLAG = 0;
-//   int arguments = 0;
 
    while (*cmdLine != '\0') // traverse through cmdLine until NULL char reached
    {
@@ -52,11 +51,38 @@ char* parse(char *cmdLine, char **argv)
          G_ISNEXT = 1;
          return nextLine;
       }
-      *argv = cmdLine;
-      argv++;
-//      arguments++;
+      if (*cmdLine == '|')
+      {
+         if (ORFLAG)
+         {
+            // if here, a || connector has been detected, so prep and return
+            // decrement cmdLine pointer and set this char to 0, then 
+            // incrment cmdLine pointer to where nextLine starts, after the 
+            // || connector.
+            cmdLine--;
+            *cmdLine = '\0';
+            cmdLine++;
+            *cmdLine = '\0';
+            cmdLine++;
+            nextLine = cmdLine;
+            *argv = '\0';
+            G_ISOR = 1;
+            return nextLine;
+         } 
+         // else
+         ORFLAG = 1;
+      } else
+      {
+         ORFLAG = 0;
+      }
+      if ((*cmdLine != '|') && (*cmdLine != '&'))
+      {
+         // if at the beginning of a word and not a connector:
+         *argv = cmdLine;
+         argv++;
+      }
       // now traverse until the end of the word
-      while ((*cmdLine != '\t') && (*cmdLine != ' ') && (*cmdLine != '\n') && (*cmdLine != '#') && (*cmdLine != '\0'))
+      while ((*cmdLine != '\t') && (*cmdLine != ' ') && (*cmdLine != '\n') && (*cmdLine != '#') && (*cmdLine != '\0') && (*cmdLine != '|') && (*cmdLine != '&'))
       {
          // look for connectors ; && and ||
          // if encounter a ';', update nextLine passed current execution
@@ -80,6 +106,18 @@ char* parse(char *cmdLine, char **argv)
          *cmdLine = '\0';
          break;
       }
+      if (*cmdLine == '|')
+      {
+         ORFLAG = 1;
+         cmdLine++;
+      }
+/*
+      if (*cmdLine == '&')
+      {
+         ANDFLAG = 1;
+         cmdLine++;
+      }
+*/
       // now restart loop to record next word until NULL reached
    }
    // set a NULL character at the end of argv list
@@ -88,8 +126,9 @@ char* parse(char *cmdLine, char **argv)
    return nextLine;
 }
 
-void execCmd(char **argVec)
+int execCmd(char **argVec)
 {
+   int execSuccess = 1;
    pid_t pid;
    // fork a child process and then verify the syscall worked
    if ((pid = fork()) < 0)
@@ -102,8 +141,12 @@ void execCmd(char **argVec)
       if ((execvp(argVec[0], argVec)) < 0)
       {
          perror("execution failed");
-         exit(1);
+         execSuccess = 0;
+//         return execSuccess;
+    //     exit(1);
       }
+      execSuccess = 0;
+      return execSuccess;
    }
    else // in parent process, so wait for child process to finish
    {
@@ -115,6 +158,8 @@ void execCmd(char **argVec)
       }
 //      printf("Back to parent, now for new cmdline:\n");
    }
+ //  printf("End of execCmd func with: %d\n", execSuccess);
+   return execSuccess;
 }
 
 int main(void)
@@ -124,7 +169,7 @@ int main(void)
    char *nxtLine = NULL;
    char *arglist[128];
    char *startArg = *arglist;
-//   int index = 0;
+   int execRtrn = 0;
    while (1) // loop program infinitely until prompted to exit with 'exit"
    {
 //      line = startLine;
@@ -152,17 +197,20 @@ int main(void)
       {
       //   printf("no args and no more to check\n");
          // if here, no argument is to be executed and no new commands await
-         continue;
+        G_ISNEXT = 0;
+        G_ISOR = 0;
+//      G_ISAND = 0; 
+        continue;
 
       }
-      // check for 
+      // check for exit command
       if (0 == strcmp(arglist[0], "exit"))
       {
       //   exit(0);
           return 0;
       }
       // in ; connector case:
-      while (G_ISNEXT) // add || G_ISOR || G_ISAND when those work...
+      while (G_ISNEXT || G_ISOR) // add || G_ISOR || G_ISAND when those work...
       {
          // clear the ; connector flag for next parse
       //   printf("In ; connector loop.\n");
@@ -172,18 +220,30 @@ int main(void)
          // ensure arglist is filled before sending to execvp, then put
          // arglist pointer back to original position.
          
-         if (arglist[0] != '\0')
-         {
-            execCmd(arglist);
-         }
+         execRtrn = execCmd(arglist);
+         
          *arglist = startArg;   
-         if (0 == strcmp(nxtLine, "\n"))
-         {
+//         if (0 == strcmp(nxtLine, "\n"))
+//         {
 //         printf("Enter a commmand!\n");
-            continue;
-         }
+//            continue;
+//         }
    
-         // take in next command to execute
+         // take action depending on connector and execCmd return
+         if (G_ISOR && (execRtrn == 1))
+         {
+            // here, we skip the RHS of || since the LHS passed
+            G_ISOR = 0;
+            goto NEWPROMPT;
+         }
+//         if (G_ISAND && (execRtrn == 0))
+//         {
+//            goto NEWPROMPT;
+//         }
+         // now, clear global && and || flags
+         G_ISOR = 0;
+//         G_ISAND = 0;
+         // otherwise, take in next command to execute
          nxtLine = parse(nxtLine, arglist);
          while ((!*arglist)  && (*nxtLine != '\0'))
          {
@@ -195,6 +255,9 @@ int main(void)
          {
         //    printf("no args and no more to check\n");
             // if here, no argument is to be executed and no new commands await
+            G_ISNEXT = 0;  
+            G_ISOR = 0;
+//            G_ISAND = 0;
             goto NEWPROMPT;
          } 
 /*         while (!*arglist)
@@ -210,13 +273,11 @@ int main(void)
          //   exit(0);
             return 0;
          }
+//         printf("end of connector loop in main\n");
       }
       // now ensure there is an argument in the argument list, arglist 
-      // if a command entered, send the arglist to execvp
-      if (arglist[0] != '\0')
-      {
-         execCmd(arglist);
-      }
+      // send the arglist to execvp
+      execRtrn = execCmd(arglist);
       // now restart while loop to execute next commandline entry
  //     printf("The first char of the last command: %c\n", line[0]); 
    }
