@@ -6,7 +6,11 @@
 #include <errno.h>
 #include <sys/wait.h>
 
-int parse(char *cmdLine, char **argv);
+//int G_ISOR = 0;
+//int G_ISAND = 0;
+int G_ISNEXT = 0;
+
+char* parse(char *cmdLine, char **argv);
 void execCmd(char **argVec);
 
 // Note on parse: now any char after '#' is considered a comment and ignored
@@ -16,9 +20,13 @@ void execCmd(char **argVec);
 // ex: if encounter a '|', set Bool ORFLAG to 1. then upon next char inspection
 // if (*cmdLine == '|') and ORFLAG == 1 (is set), you know you've encountered
 // a '||'. otherwise, if the second *cmdLine != '|', reset ORFLAG to zero.
-int parse(char *cmdLine, char **argv)
+char* parse(char *cmdLine, char **argv)
 {
-   int arguments = 0;
+   char *nextLine = cmdLine;
+//   int ORFLAG = 0;
+//   int ANDFLAG = 0;
+//   int arguments = 0;
+
    while (*cmdLine != '\0') // traverse through cmdLine until NULL char reached
    {
       // ensure to skip all spaces, tabs, and newlines
@@ -31,15 +39,39 @@ int parse(char *cmdLine, char **argv)
       // now ensure a word, and not comments, follows, otherwise end argv array
       if ((*cmdLine == '\0') || (*cmdLine == '#'))
       {
+         *cmdLine = '\0';
          break;
       }
       // else, at the beginning of a word, so save the string starting here
+      // check if the ; connector is at the beginning of a word or alone
+      if (*cmdLine == ';')
+      {
+         cmdLine++;
+         nextLine = cmdLine;
+         *argv = '\0';
+         G_ISNEXT = 1;
+         return nextLine;
+      }
       *argv = cmdLine;
       argv++;
-      arguments++;
+//      arguments++;
       // now traverse until the end of the word
       while ((*cmdLine != '\t') && (*cmdLine != ' ') && (*cmdLine != '\n') && (*cmdLine != '#') && (*cmdLine != '\0'))
       {
+         // look for connectors ; && and ||
+         // if encounter a ';', update nextLine passed current execution
+         // and return with argv containing the current execution
+         if (*cmdLine == ';')
+         {
+            *cmdLine = '\0';
+            cmdLine++;
+            // update nextLine with cmdLine passed the current execution args
+            nextLine = cmdLine;
+            *argv = '\0';
+            // set flag that ; connector encountered
+            G_ISNEXT = 1;
+            return nextLine;
+         }
          cmdLine++;
       }
       // if encounter a '#' symbol, in this word, end the argv array here
@@ -52,7 +84,8 @@ int parse(char *cmdLine, char **argv)
    }
    // set a NULL character at the end of argv list
    *argv = '\0';
-   return arguments;
+   nextLine = cmdLine;
+   return nextLine;
 }
 
 void execCmd(char **argVec)
@@ -61,14 +94,14 @@ void execCmd(char **argVec)
    // fork a child process and then verify the syscall worked
    if ((pid = fork()) < 0)
    {
-      perror("Error forking child process:");
+      perror("Error with fork");
       exit(1);
    } else if (pid == 0) // now in child process, so call execvp
    {
        // call execvp and ensure syscall execvp completed successfully
       if ((execvp(argVec[0], argVec)) < 0)
       {
-         perror("execution failed: ");
+         perror("execution failed");
          exit(1);
       }
    }
@@ -77,7 +110,7 @@ void execCmd(char **argVec)
       // ensure syscall waitpid completes successfully
       if (-1 == waitpid(pid, NULL, 0))
       {
-         perror("waitpid failed: ");
+         perror("waitpid failed");
          exit(1);
       }
 //      printf("Back to parent, now for new cmdline:\n");
@@ -87,38 +120,105 @@ void execCmd(char **argVec)
 int main(void)
 {
    char line[1024];
+//   char *startLine = line;
+   char *nxtLine = NULL;
    char *arglist[128];
-   int i = 0;
-   int args = 0;
+   char *startArg = *arglist;
+//   int index = 0;
    while (1) // loop program infinitely until prompted to exit with 'exit"
    {
+//      line = startLine;
+   NEWPROMPT:
+      *arglist = startArg;
       printf("$: ");
       fgets(line, 1024, stdin);
-
+//      if (0 == strcmp(line, "\n"))
+ //     {
+//         printf("Enter a commmand!\n");
+   //      continue;
+     // }
       // now line is a NULL-terminated string ending with a newline.
       // let's parse the line:
-      args = parse(line, arglist);
-      // now arglist is a NULL-terminated array of char pointers to
-      // NULL-terminated char arrays
-
-      // now let's determine of any of these arguments are the exit command:
-      // loop through arglist while (*arglist) and determine if **arglist
-      // and "exit" == 0 in strcmp. If so, exit the program.
-//      printf("the args here are:\n");
-      for (i = 0; i < args; i++)
+      nxtLine = parse(line, arglist);
+      // call parse until an arglist provided so long as there's something
+      // to parse
+      while ((!*arglist) && (*nxtLine != '\0'))
       {
-         if (0 == strcmp(arglist[i], "exit"))
-         {
-            exit(0);
-         }
-       //  else
-       //  {
-       //     printf("%s\n", arglist[i]);
-       //  }
+    //     printf("No arglist; looking to next\n");
+//         continue; 
+         nxtLine = parse(nxtLine, arglist);
       }
-      // now, exit is not an argument, so send the arglist to execvp
-      execCmd(arglist);
+      if (!*arglist)
+      {
+      //   printf("no args and no more to check\n");
+         // if here, no argument is to be executed and no new commands await
+         continue;
+
+      }
+      // check for 
+      if (0 == strcmp(arglist[0], "exit"))
+      {
+      //   exit(0);
+          return 0;
+      }
+      // in ; connector case:
+      while (G_ISNEXT) // add || G_ISOR || G_ISAND when those work...
+      {
+         // clear the ; connector flag for next parse
+      //   printf("In ; connector loop.\n");
+         G_ISNEXT = 0;
+         // G_ISOR = 0;
+         // G_ISAND = 0;
+         // ensure arglist is filled before sending to execvp, then put
+         // arglist pointer back to original position.
+         
+         if (arglist[0] != '\0')
+         {
+            execCmd(arglist);
+         }
+         *arglist = startArg;   
+         if (0 == strcmp(nxtLine, "\n"))
+         {
+//         printf("Enter a commmand!\n");
+            continue;
+         }
+   
+         // take in next command to execute
+         nxtLine = parse(nxtLine, arglist);
+         while ((!*arglist)  && (*nxtLine != '\0'))
+         {
+         //   printf("No arglist; looking to next\n");
+//            continue; 
+            nxtLine = parse(nxtLine, arglist);
+         }
+         if (!*arglist)
+         {
+        //    printf("no args and no more to check\n");
+            // if here, no argument is to be executed and no new commands await
+            goto NEWPROMPT;
+         } 
+/*         while (!*arglist)
+         {
+            printf("No arglist again\n");
+            goto NEWPROMPT;
+            nxtLine = parse(nxtLine, arglist);
+         }
+*/
+         // if the first command argument is "exit", then exit
+         if (0 == strcmp(arglist[0], "exit"))
+         {
+         //   exit(0);
+            return 0;
+         }
+      }
+      // now ensure there is an argument in the argument list, arglist 
+      // if a command entered, send the arglist to execvp
+      if (arglist[0] != '\0')
+      {
+         execCmd(arglist);
+      }
       // now restart while loop to execute next commandline entry
+ //     printf("The first char of the last command: %c\n", line[0]); 
    }
    printf("You should never see this!");
    return 0;
