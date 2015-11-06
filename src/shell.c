@@ -170,10 +170,10 @@ int execCmd(char **argVec)
          perror("execution failed");
          execSuccess = 0;
 //         return execSuccess;
-    //     exit(1);
+         exit(1);
       }
       execSuccess = 0;
-      return execSuccess;
+     // return execSuccess;
    }
    else // in parent process, so wait for child process to finish
    {
@@ -183,7 +183,7 @@ int execCmd(char **argVec)
          perror("waitpid failed");
          exit(1);
       }
-//      printf("Back to parent, now for new cmdline:\n");
+      printf("Back to parent, now for new cmdline:\n");
    }
  //  printf("End of execCmd func with: %d\n", execSuccess);
    return execSuccess;
@@ -225,6 +225,7 @@ int main(void)
          // do not call parse if G_ISAND set but no call to execCmd was made
          if (G_ISAND == 0)
          { 
+            *arglist = startArg;
             nxtLine = parse(nxtLine, arglist);
          } else
          {
@@ -268,6 +269,8 @@ int main(void)
             // here, we skip the RHS of || since the LHS passed
             G_ISOR = 0;
             goto NEWPROMPT;
+// Note: instead of ignoring RHS, let's check if && connector follows:
+// if && connector....
          }
          if (G_ISAND && (execRtrn == 0))
          {
@@ -286,6 +289,7 @@ int main(void)
          // prev call to execCmd
             if (G_ISAND == 0)
             {
+               *arglist = startArg;
                nxtLine = parse(nxtLine, arglist);
             }  else
             {
