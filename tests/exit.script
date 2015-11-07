@@ -1,0 +1,28 @@
+Script started on Fri 06 Nov 2015 11:57:43 PM PST
+]0;emull005@hammer:~/CS100/rshell/tests[?1034h[emull005@hammer tests]$ cd ..
+]0;emull005@hammer:~/CS100/rshell[emull005@hammer rshell]$ make
+make rshell;
+make[1]: Entering directory `/home/csmajs/emull005/CS100/rshell'
+mkdir bin; g++ src/shell.c -Wall -Werror -ansi -pedantic -o bin/rshell 
+mkdir: cannot create directory `bin': File exists
+make[1]: Leaving directory `/home/csmajs/emull005/CS100/rshell'
+]0;emull005@hammer:~/CS100/rshell[emull005@hammer rshell]$ bin/rseh[K[Khell
+$: ls
+bin  heya.c  heyo.c  LICENSE.md  Makefile  README.md  src  tests
+$: ls || exit
+bin  heya.c  heyo.c  LICENSE.md  Makefile  README.md  src  tests
+$: ls && exit
+bin  heya.c  heyo.c  LICENSE.md  Makefile  README.md  src  tests
+]0;emull005@hammer:~/CS100/rshell[emull005@hammer rshell]$ bin [K/rshell
+$: abc; exit
+execution failed: No such file or directory
+]0;emull005@hammer:~/CS100/rshell[emull005@hammer rshell]$ bin/rshell
+$: exit
+]0;emull005@hammer:~/CS100/rshell[emull005@hammer rshell]$ bin/rshell
+$: #exit
+$: ls && exit
+bin  heya.c  heyo.c  LICENSE.md  Makefile  README.md  src  tests
+]0;emull005@hammer:~/CS100/rshell[emull005@hammer rshell]$ exit
+exit
+
+Script done on Fri 06 Nov 2015 11:58:51 PM PST
