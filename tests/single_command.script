@@ -1,0 +1,61 @@
+Script started on Fri 06 Nov 2015 11:47:45 PM PST
+]0;emull005@hammer:~/CS100/rshell/tests[?1034h[emull005@hammer tests]$ #this is the script for sincle [K[K[K[Kgle commands:
+]0;emull005@hammer:~/CS100/rshell/tests[emull005@hammer tests]$ cd ..
+]0;emull005@hammer:~/CS100/rshell[emull005@hammer rshell]$ make
+make rshell;
+make[1]: Entering directory `/home/csmajs/emull005/CS100/rshell'
+mkdir bin; g++ src/shell.c -Wall -Werror -ansi -pedantic -o bin/rshell 
+mkdir: cannot create directory `bin': File exists
+make[1]: Leaving directory `/home/csmajs/emull005/CS100/rshell'
+]0;emull005@hammer:~/CS100/rshell[emull005@hammer rshell]$ bin/s[Krseh[K[Khell
+$: ls
+bin  heya.c  LICENSE.md  Makefile  README.md  src  tests
+$: ls -a
+.  ..  bin  .git  heya.c  LICENSE.md  Makefile	README.md  src	tests
+$: ls -al
+total 36
+drwxr-xr-x  6 emull005 csmajs 4096 Nov  6 23:45 .
+drwxr-xr-x 10 emull005 csmajs 4096 Nov  2 11:22 ..
+drwxr-xr-x  2 emull005 csmajs 4096 Nov  6 23:48 bin
+drwxr-xr-x  8 emull005 csmajs 4096 Nov  6 23:22 .git
+-rw-r--r--  1 emull005 csmajs    0 Nov  6 23:45 heya.c
+-rw-r--r--  1 emull005 csmajs 1296 Oct 28 12:00 LICENSE.md
+-rw-r--r--  1 emull005 csmajs  100 Nov  6 21:50 Makefile
+-rw-r--r--  1 emull005 csmajs 2584 Nov  6 23:22 README.md
+drwxr-xr-x  2 emull005 csmajs 4096 Nov  6 22:04 src
+drwxr-xr-x  2 emull005 csmajs 4096 Nov  6 23:47 tests
+$: pwd asdf
+pwd: ignoring non-option arguments
+/home/csmajs/emull005/CS100/rshell
+$: 
+$: #adf
+$: #
+$: ||
+$: &&
+$: ;
+$: 	ls
+bin  heya.c  LICENSE.md  Makefile  README.md  src  tests
+$: 			ps
+  PID TTY          TIME CMD
+47282 pts/20   00:00:00 bash
+47320 pts/20   00:00:00 rshell
+47470 pts/20   00:00:00 ps
+$: touch hea yo.c
+$: ls -a 0l==    -l
+total 36
+drwxr-xr-x  6 emull005 csmajs 4096 Nov  6 23:50 .
+drwxr-xr-x 10 emull005 csmajs 4096 Nov  2 11:22 ..
+drwxr-xr-x  2 emull005 csmajs 4096 Nov  6 23:48 bin
+drwxr-xr-x  8 emull005 csmajs 4096 Nov  6 23:22 .git
+-rw-r--r--  1 emull005 csmajs    0 Nov  6 23:45 heya.c
+-rw-r--r--  1 emull005 csmajs    0 Nov  6 23:50 heyo.c
+-rw-r--r--  1 emull005 csmajs 1296 Oct 28 12:00 LICENSE.md
+-rw-r--r--  1 emull005 csmajs  100 Nov  6 21:50 Makefile
+-rw-r--r--  1 emull005 csmajs 2584 Nov  6 23:22 README.md
+drwxr-xr-x  2 emull005 csmajs 4096 Nov  6 22:04 src
+drwxr-xr-x  2 emull005 csmajs 4096 Nov  6 23:47 tests
+$: exit
+]0;emull005@hammer:~/CS100/rshell[emull005@hammer rshell]$ exit
+exit
+
+Script done on Fri 06 Nov 2015 11:50:57 PM PST
