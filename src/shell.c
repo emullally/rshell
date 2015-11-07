@@ -30,7 +30,6 @@ char* parse(char *cmdLine, char **argv)
 
    while (*cmdLine != '\0') // traverse through cmdLine until NULL char reached
    {
-      // if global G_ISAND set at time of parse
 
       // ensure to skip all spaces, tabs, and newlines
       while ((*cmdLine == '\t') || (*cmdLine == ' ') || (*cmdLine == '\n'))
@@ -171,12 +170,8 @@ int execCmd(char **argVec)
       if ((execvp(argVec[0], argVec)) < 0)
       {
          perror("execution failed");
-//         execSuccess = 0;
-//         return execSuccess;
          exit(1);
       }
-//      execSuccess = 0;
-     // return execSuccess;
    }
    else // in parent process, so wait for child process to finish
    {
@@ -193,43 +188,26 @@ int execCmd(char **argVec)
             if (1 == WEXITSTATUS(status))
             {
                execSuccess = 0;
-            //   printf("exited status %d/n", WEXITSTATUS(status));
             } else
             {
                execSuccess = 1;
-             //  printf("exited status %d/n", WEXITSTATUS(status));
             }
          }
       } while (!WIFEXITED(status));
-      // check that the child terminated normally, otherwise set execRtrn to 0
-/*      if (!WIFEXITED(status))
-      {
-         printf("child process did not finish normally!\n");
-         execSuccess = 0;
-      } else
-      {
-         execSuccess = 1;
-      }
-*/
- //     printf("Back to parent, now for new cmdline:\n");
    }
-  // printf("End of execCmd func with: %d\n", execSuccess);
    return execSuccess;
 }
 
 int main(void)
 {
    char line[1024];
-//   char *startLine = line;
    char *nxtLine = line;
    char *arglist[128];
    char *startArg = *arglist;
    int execRtrn = 0;
-   int firstLoop = 1;
    while (1) // loop program infinitely until prompted to exit with 'exit"
    {
    NEWPROMPT:
-      firstLoop = 1;
       execRtrn = 0;
       nxtLine = line;
       printf("$: ");
@@ -239,116 +217,36 @@ int main(void)
          exit(1);
       }
      // now line is a NULL-terminated string ending with a newline.
-      // let's parse the line:
    NEXTCMD:
-// do while (connector present) 
-
-
       if (G_WASOR) // if connector detected...
       {
          G_WASOR = 0;
-         // clear the ; connector flag for next parse
-   //      printf("In OR connector loop.\n");
- //        G_ISNEXT = 0;
-         
-   //      execRtrn = execCmd(arglist);
-         
-         // arglist pointer back to original position.
-         //*arglist = startArg;   
-   
          // take action depending on connector and execCmd return
          if (execRtrn == 1)
          {
             // here, we skip the RHS of || since the LHS passed
-    //        G_ISOR = 0;
- //           printf("encountered OR with first success\n");
             *arglist = startArg;   
             nxtLine = parse(nxtLine, arglist);
             execRtrn = 0;
-            goto CONTCMD;
-    //        if (*nxtLine != '\0')
-      //      {
-        //       firstLoop = 0;
-          //     goto CONTCMD;
-   //         } else
-     //       {
-       //        goto NEWPROMPT;
-         //   }
-// Note: instead of ignoring RHS, let's check if && connector follows:
-// if && connector....
-         } else // if execRtrn == 0
-         {
-            if (0 == firstLoop)
-            {
-               // here if previous OR  command failed
-               firstLoop = 0;
-      //         G_ISOR = 0;
-               printf("encountered command ORd with fail\n");
- //              *arglist = startArg;   
-   //            nxtLine = parse(nxtLine, arglist);
-         //      execRtrn = 0;
-      //         execRtrn = execCmd(arglist);
-               goto CONTCMD;
-           //    if (*nxtLine != '\0')
-             //  {
-              //    firstLoop = 0;
-               //   goto CONTCMD;
-               //} else
-              // {
-              //    goto NEWPROMPT;
-              // }
-            } else // if 1 == firstLoop and 0 == execRtrn
-            {
-               // here if first command
-               //G_ISOR = 0;
-               firstLoop = 0;
-               printf("encountered first command with OR\n");
-       //        execRtrn = execCmd(arglist);
-               goto CONTCMD;
-            }
-         }
+         } 
       }
       if (G_WASAND)
       {
-       //  *arglist = startArg;   
          G_WASAND = 0;
          if (execRtrn == 0)
          {
-           // G_ISAND = 0; 
-            printf("encountered AND with first fail\n");
-//CHANGE?! 
            *arglist = startArg;   
             nxtLine = parse(nxtLine, arglist);
             execRtrn = 0;
-            goto CONTCMD;
-//            if (*nxtLine != '\0')
- //           {
-  //             firstLoop = 0;
-   //            goto CONTCMD;
-    //        } else
-     //       {
-      //         goto NEWPROMPT;
-       //     }
-         } else
-         {      
-//            G_ISAND = 0;
-            firstLoop = 0;
-            printf("encountered a AND after successful call\n");  
-//            execRtrn = execCmd(arglist);
-       //     printf("encountered AND with first success\n");
-            goto CONTCMD;
          }
       }
-CONTCMD:
-  // printf("at NEXTCMD\n"); 
+//CONTCMD:
       *arglist = startArg;
      // keep global flags if set already:
       nxtLine = parse(nxtLine, arglist);
       // call parse until an arglist provided
       while ((!*arglist) && (*nxtLine != '\0'))
       {
-    //     printf("No arglist; looking to next\n");
-//         continue;
          // do not call parse if G_ISAND set but no call to execCmd was made
          if (G_ISAND == 0)
          { 
@@ -365,7 +263,6 @@ CONTCMD:
       // if no arguments given, ask for new command
       if (!*arglist)
       {
-      //   printf("no args and no more to check\n");
          // if here, no argument is to be executed and no new commands await
         G_ISNEXT = 0;
         G_ISOR = 0;
@@ -379,135 +276,26 @@ CONTCMD:
       //   exit(0);
           return 0;
       }
-      // in ; connector case:
-      // execute the command list
-      //execRtrn = execCmd(arglist);
-      //if (G_ISNEXT)
-      //{
-       //  G_ISNEXT = 0;
-        // firstLoop = 0;
-         //execRtrn = execCmd(arglist);
-         //goto NEXTCMD;
-     // }
+      // now execute the current command
       execRtrn = execCmd(arglist);
       if (G_ISOR)
       {
-         printf("prev command had a OR conditional operator\n");
          G_WASOR = 1;
          G_ISOR = 0;
-         firstLoop = 0;
          goto NEXTCMD;
       }
       if (G_ISAND)
       {
-         printf("prev command had a AND conditional operator\n");
          G_WASAND = 1;
          G_ISAND = 0;
-         firstLoop = 0;
          goto NEXTCMD;
       }
       
       if (G_ISNEXT)
       {
          G_ISNEXT = 0;
-         firstLoop = 0;
          goto NEXTCMD;
       }
-/*      if (G_ISOR) // if connector detected...
-      {
-         // clear the ; connector flag for next parse
-   //      printf("In OR connector loop.\n");
- //        G_ISNEXT = 0;
-         
-   //      execRtrn = execCmd(arglist);
-         
-         // arglist pointer back to original position.
-         // *arglist = startArg;   
-   
-         // take action depending on connector and execCmd return
-         if (execRtrn == 1)
-         {
-            // here, we skip the RHS of || since the LHS passed
-            G_ISOR = 0;
- //           printf("encountered OR with first success\n");
-            *arglist = startArg;   
-            nxtLine = parse(nxtLine, arglist);
-            execRtrn = 0;
-            if (*nxtLine != '\0')
-            {
-               firstLoop = 0;
-               goto NEXTCMD;
-            } else
-            {
-               goto NEWPROMPT;
-            }
-// Note: instead of ignoring RHS, let's check if && connector follows:
-// if && connector....
-         } else // if execRtrn == 0
-         {
-            if (0 == firstLoop)
-            {
-               // here if previous OR  command failed
-               firstLoop = 0;
-               G_ISOR = 0;
-               printf("encountered command ORd with fail\n");
-               *arglist = startArg;   
-               nxtLine = parse(nxtLine, arglist);
-         //      execRtrn = 0;
-               execRtrn = execCmd(arglist);
-               if (*nxtLine != '\0')
-               {
-                  firstLoop = 0;
-                  goto NEXTCMD;
-               } else
-               {
-                  goto NEWPROMPT;
-               }
-            } else // if 1 == firstLoop and 0 == execRtrn
-            {
-               // here if first command
-               G_ISOR = 0;
-               firstLoop = 0;
-               printf("encountered first command with OR\n");
-               execRtrn = execCmd(arglist);
-               goto NEXTCMD;
-            }
-         }
-      }
-      if (G_ISAND)
-      {
-       //  *arglist = startArg;   
-         if (execRtrn == 0)
-         {
-            G_ISAND = 0; 
-       //     printf("encountered AND with first fail\n");
-            *arglist = startArg;   
-            nxtLine = parse(nxtLine, arglist);
-            execRtrn = 0;
-            if (*nxtLine != '\0')
-            {
-               firstLoop = 0;
-               goto NEXTCMD;
-            } else
-            {
-               goto NEWPROMPT;
-            }
-         } else
-         {      
-            G_ISAND = 0;
-            firstLoop = 0;
-            printf("encountered a AND after successful call\n");  
-            execRtrn = execCmd(arglist);
-       //     printf("encountered AND with first success\n");
-            goto NEXTCMD;
-         }
-      }
- */     // now ensure there is an argument in the argument list, arglist 
-      // send the arglist to execvp
-   //   execRtrn = execCmd(arglist);
-      // now restart while loop to execute next commandline entry
- //     printf("The first char of the last command: %c\n", line[0]); 
    }
-   printf("You should never see this!");
    return 0;
 }
